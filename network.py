@@ -4,7 +4,7 @@ from qgis import processing
 import json
 from math import (sqrt)
 
-class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
+class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):        
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
@@ -18,6 +18,8 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         return self.tr('Сгенерировать сеть')
 
     def initAlgorithm(self, config=None):
+        self.res = []
+        
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 'INPUT',
@@ -41,8 +43,6 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Выходной слой')
             )
         )
-
-    res = []
 
     def distance(self, a, b):
         dx = a[0]-b[0]
@@ -87,11 +87,12 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         tolerance = self.parameterAsDouble(parameters, 'TOLERANCE', context)
+        self.res = []
 
         if feedback.isCanceled():
             return {}
             
-        splited_id = processing.run(
+        splited_result = processing.run(
             "native:explodelines",
             {
                 'INPUT': parameters['INPUT'],
@@ -99,12 +100,12 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
             },
             is_child_algorithm=True,
             context=context,
-            feedback=feedback)['OUTPUT']
+            feedback=feedback)
 
         if feedback.isCanceled():
             return {}
             
-        splited = context.getMapLayer(splited_id)
+        splited = context.getMapLayer(splited_result['OUTPUT'])
         features = list(splited.getFeatures())
         
         for feature in features:
@@ -117,4 +118,4 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         layer.truncate()
         layer.addFeatures(self.res)
 
-        return {'OUTPUT': splited_id }
+        return {'OUTPUT': splited_result['OUTPUT'] }
